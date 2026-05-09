@@ -359,8 +359,8 @@ export function InterviewsPage({ user }: Props) {
         {/* Table */}
         <div style={{ background:'#fff', borderRadius:16, boxShadow:'0 2px 16px rgba(0,0,0,0.07)', overflow:'hidden', animation:'fadeUp 0.4s ease 0.15s both' }}>
           {/* Table header - hidden on mobile */}
-          <div className="table-header" style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 1fr 120px', padding:'12px 20px', background:'#f8fafc', borderBottom:'1px solid #e8edf3' }}>
-            {['Candidate','Job','Status','Score',''].map(h => (
+          <div className="table-header" style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 120px', padding:'12px 20px', background:'#f8fafc', borderBottom:'1px solid #e8edf3' }}>
+            {['Candidate','Job','Status',''].map(h => (
               <div key={h} style={{ fontSize:11, color:'#94a3b8', fontWeight:700, letterSpacing:0.6 }}>{h.toUpperCase()}</div>
             ))}
           </div>
@@ -390,7 +390,7 @@ export function InterviewsPage({ user }: Props) {
 
             return (
               <div key={session.id || session.token} className="iv-row"
-                style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 1fr 120px', padding:'14px 20px', borderBottom:'1px solid #f1f5f9', alignItems:'center', cursor: isCompleted ? 'pointer' : 'default', background:'#fff' }}
+                style={{ display:'grid', gridTemplateColumns:'2fr 2fr 1fr 120px', padding:'14px 20px', borderBottom:'1px solid #f1f5f9', alignItems:'center', cursor: isCompleted ? 'pointer' : 'default', background:'#fff' }}
                 onClick={() => isCompleted && !isLoading && openResults(session)}
               >
                 {/* Candidate */}
@@ -413,14 +413,6 @@ export function InterviewsPage({ user }: Props) {
                 {/* Status */}
                 <div><StatusBadge status={session.status} /></div>
 
-                {/* Score */}
-                <div>
-                  {isCompleted
-                    ? <span style={{ fontSize:11, color:'#94a3b8', fontStyle:'italic' }}>Click to view</span>
-                    : <span style={{ fontSize:12, color:'#cbd5e1' }}>—</span>
-                  }
-                </div>
-
                 {/* Action */}
                 <div>
                   {isCompleted ? (
@@ -430,11 +422,7 @@ export function InterviewsPage({ user }: Props) {
                     >
                       {isLoading ? '…' : 'View Report'}
                     </button>
-                  ) : (
-                    <span style={{ fontSize:11, color:'#cbd5e1', fontStyle:'italic' }}>
-                      {status === 'IN_PROGRESS' ? 'In session' : 'Awaiting'}
-                    </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );
