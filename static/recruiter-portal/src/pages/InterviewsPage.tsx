@@ -205,7 +205,10 @@ export function InterviewsPage({ user }: Props) {
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch('/recruiter/sessions');
+      const token = localStorage.getItem('upply_r_token');
+      const res  = await fetch('/recruiter/sessions', {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as { ok: boolean; sessions: Session[] };
       setSessions(data.sessions || []);
@@ -222,7 +225,10 @@ export function InterviewsPage({ user }: Props) {
   const openResults = useCallback(async (session: Session) => {
     setLoadingToken(session.token);
     try {
-      const res  = await fetch(`/recruiter/session/${session.token}/results`);
+      const token = localStorage.getItem('upply_r_token');
+      const res  = await fetch(`/recruiter/session/${session.token}/results`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SessionResults;
       setModal({ session, data });

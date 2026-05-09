@@ -211,6 +211,18 @@ export const applicationsService = {
 
 // ── Interview service ─────────────────────────────────────────────────────────
 export const interviewService = {
+  async getSessions(jobId?: string | number): Promise<{ sessions: Array<Record<string, unknown>> }> {
+    const token = storage.getToken();
+    const url = jobId ? `/recruiter/sessions?job_id=${jobId}` : '/recruiter/sessions';
+    const res = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    return res.json();
+  },
+
  async sendBulk(payload: {
     job_id: string | number;
     job_title: string;
@@ -241,10 +253,13 @@ export const interviewService = {
 
   async getResults(jobId: string | number, appId: string | number): Promise<InterviewResults | null> {
     try {
-      const sess = await fetch(`/recruiter/sessions?job_id=${jobId}`).then(r => r.json()) as { sessions: Array<{ application_id: string | number; token: string }> };
+      const sess = await interviewService.getSessions(jobId);
       const s = (sess.sessions || []).find(s => String(s.application_id) === String(appId));
       if (!s) return null;
-      return fetch(`/recruiter/session/${s.token}/results`).then(r => r.json());
+      const token = storage.getToken();
+      return fetch(`/recruiter/session/${s.token}/results`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      }).then(r => r.json());
     } catch {
       return null;
     }
