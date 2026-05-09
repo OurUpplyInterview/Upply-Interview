@@ -539,4 +539,4 @@ Error generating stack: `+o.message+`
         input  { font-family: 'Inter', sans-serif; }
         button { font-family: 'Inter', sans-serif; }
       `}),r!=="login"&&s.jsx(r2,{user:e.user,onSignOut:u,onCreateInterview:()=>{l("create"),window.scrollTo({top:0,behavior:"smooth"})},onNavigateToJobs:()=>{l("jobs"),window.scrollTo({top:0,behavior:"smooth"})},onNavigateToInterviews:g,activePage:r==="interviews"?"interviews":"jobs"}),r==="login"&&s.jsx(a2,{onLogin:a,loading:e.loading,error:e.error}),r==="create"&&s.jsx(f2,{user:e.user,onStart:()=>{l("jobs"),window.scrollTo({top:0,behavior:"smooth"})},onBrowse:()=>{l("jobs"),window.scrollTo({top:0,behavior:"smooth"})}}),r==="jobs"&&s.jsx(m2,{onSelectJob:f,onNavigateToInterviews:g,onSignOut:u,user:e.user}),r==="detail"&&o&&s.jsx(y2,{job:o,onBack:y,showToast:n}),r==="interviews"&&s.jsx(k2,{user:e.user}),s.jsx(l2,{message:t.message,type:t.type,visible:t.visible})]})}to.createRoot(document.getElementById("root")).render(s.jsx(fa.StrictMode,{children:s.jsx(S2,{})}));
-//# sourceMappingURL=index-BJGdsVH0.js.map
+//# sourceMappingURL=index.js.map
