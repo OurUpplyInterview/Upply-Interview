@@ -122,8 +122,14 @@ def init_db():
         questions_json TEXT,
         status TEXT DEFAULT 'PENDING',
         candidate_email TEXT, candidate_name TEXT,
+        recruiter_email TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
         expires_at TEXT)""")
+    # Add recruiter_email to existing DBs that don't have it yet
+    try:
+        db_run("ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS recruiter_email TEXT")
+    except Exception:
+        pass
     db_run("""CREATE TABLE IF NOT EXISTS interview_results (
         id SERIAL PRIMARY KEY,
         session_token TEXT NOT NULL,
@@ -488,6 +494,10 @@ async def create_bulk(request: Request):
 
     auth_header = request.headers.get("Authorization", "")
 
+    # Extract recruiter email from JWT to scope sessions
+    recruiter_claims = _decode_jwt_payload(auth_header)
+    recruiter_email  = recruiter_claims.get("sub") or recruiter_claims.get("email") or ""
+
     results = []
     for applicant in applicants:
         token      = secrets.token_urlsafe(20)
@@ -516,11 +526,11 @@ async def create_bulk(request: Request):
 
         db_run("""INSERT INTO interview_sessions
                   (id,token,job_id,application_id,job_title,company,
-                   jd,num_questions,questions_json,candidate_email,candidate_name,expires_at)
-                  VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                   jd,num_questions,questions_json,candidate_email,candidate_name,recruiter_email,expires_at)
+                  VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                (session_id, token, job_id, application_id,
                 job_title, company, jd, num_q, questions_json,
-                candidate_email, candidate_name, expires))
+                candidate_email, candidate_name, recruiter_email, expires))
 
         link = f"{INTERVIEW_BASE_URL}?token={token}"
         sent = send_email(candidate_email, candidate_name, job_title, company, link)
@@ -702,11 +712,26 @@ async def notify_invited(request: Request):
     return {"ok": True, "results": results}
  
 @app.get("/recruiter/sessions")
-def list_sessions(job_id: str = ""):
-    if job_id:
-        rows = db_all("SELECT * FROM interview_sessions WHERE job_id=%s ORDER BY created_at DESC", (job_id,))
+async def list_sessions(request: Request, job_id: str = ""):
+    auth_header     = request.headers.get("Authorization", "")
+    claims          = _decode_jwt_payload(auth_header)
+    recruiter_email = claims.get("sub") or claims.get("email") or ""
+
+    if recruiter_email:
+        if job_id:
+            rows = db_all(
+                "SELECT * FROM interview_sessions WHERE recruiter_email=%s AND job_id=%s ORDER BY created_at DESC",
+                (recruiter_email, job_id))
+        else:
+            rows = db_all(
+                "SELECT * FROM interview_sessions WHERE recruiter_email=%s ORDER BY created_at DESC",
+                (recruiter_email,))
     else:
-        rows = db_all("SELECT * FROM interview_sessions ORDER BY created_at DESC")
+        # No JWT — fallback (dev only)
+        if job_id:
+            rows = db_all("SELECT * FROM interview_sessions WHERE job_id=%s ORDER BY created_at DESC", (job_id,))
+        else:
+            rows = db_all("SELECT * FROM interview_sessions ORDER BY created_at DESC")
     return {"ok": True, "sessions": [dict(r) for r in rows]}
  
 @app.get("/recruiter/session/{token}/results")
