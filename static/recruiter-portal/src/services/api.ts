@@ -72,7 +72,9 @@ function normalizeApplicant(raw: Record<string, unknown>): Applicant {
     candidateEmail:  resolvedEmail,
     email:           resolvedEmail,
     appliedAt:       String(raw.appliedAt || raw.createdAt || raw.applicationDate || ''),
-    matchPercentage: Number(raw.matchPercentage || raw.matchScore || raw.score || raw.match || 0),
+    matchPercentage: raw.matchingRatio != null
+      ? Math.round(Number(raw.matchingRatio) * 100)
+      : Number(raw.matchPercentage || raw.matchScore || raw.score || raw.match || 0),
     status:          String(raw.status || raw.interviewStatus || 'PENDING') as Applicant['status'],
   };
 }
