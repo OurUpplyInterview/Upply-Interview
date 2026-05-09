@@ -221,13 +221,13 @@ export const interviewService = {
   }): Promise<{ ok: boolean; results: Array<{ email_sent: boolean }>; error?: string }> {
     const token = storage.getToken();
     const res = await fetch('/recruiter/create-bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    method: 'POST',
+     headers: {
+       'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    });
+  },
+  body: JSON.stringify(payload),
+});
     return res.json();
   },
 
