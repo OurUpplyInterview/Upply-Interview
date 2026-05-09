@@ -148,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="nb-dropdown-item"
                 onClick={() => setDropdownOpen(false)}
               >
-                👤 My Profile
+                My Profile
               </a>
 
               <div className="nb-dropdown-divider" />
@@ -157,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="nb-dropdown-item danger"
                 onClick={() => { setDropdownOpen(false); onSignOut(); }}
               >
-                🚪 Sign out
+                Sign out
               </button>
             </div>
           )}

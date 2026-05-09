@@ -21,7 +21,6 @@ export default function App() {
   const handleLogin = async (email: string, password: string) => {
     const result = await auth.login(email, password);
     if (result.success) {
-      if (result.isMock) showToast('⚠️ Backend unavailable — running in demo mode', 'info');
       setPage('create');
     }
     return result;
