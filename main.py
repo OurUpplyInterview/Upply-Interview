@@ -145,7 +145,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/assets", StaticFiles(directory="static/dist/assets"), name="assets")
- 
+app.mount("/recruiter-portal/dist/assets", StaticFiles(directory="static/recruiter-portal/dist/assets"), name="recruiter-assets")
 # ── Utilities ─────────────────────────────────────────────────────────────────
 FILLER_RE = re.compile(
     r"\b(um+|uh+|like|you know|i mean|basically|actually|"
