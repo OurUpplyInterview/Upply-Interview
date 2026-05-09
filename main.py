@@ -46,8 +46,8 @@ from fastapi.staticfiles import StaticFiles
 DATABASE_URL       = os.getenv("DATABASE_URL",        "")
 UPPLY_API_BASE     = os.getenv("UPPLY_BASE",         "https://api.upply.tech/api/v1")
 INTERVIEW_BASE_URL = os.getenv("INTERVIEW_BASE_URL", "http://localhost:8001")
-RESEND_API_KEY     = os.getenv("RESEND_API_KEY",     "")
-EMAIL_FROM         = os.getenv("EMAIL_FROM",         "Upply Interview <onboarding@resend.dev>")
+BREVO_API_KEY      = os.getenv("BREVO_API_KEY",      "")
+EMAIL_FROM         = os.getenv("EMAIL_FROM",         "aliaa.alijaf@gmail.com")
  
 # ── Groq ──────────────────────────────────────────────────────────────────────
 client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
@@ -290,9 +290,9 @@ def resolve_candidate_name(applicant: dict) -> str:
     return "Candidate"
 
 
-# ── Email (Resend) ────────────────────────────────────────────────────────────
+# ── Email (Brevo) ─────────────────────────────────────────────────────────────
 def send_email(to_email, candidate_name, job_title, company, link):
-    if not RESEND_API_KEY:
+    if not BREVO_API_KEY:
         print(f"📧 [DEV] Would send to {to_email}: {link}")
         return True
     try:
@@ -324,16 +324,16 @@ def send_email(to_email, candidate_name, job_title, company, link):
 </div></body></html>"""
 
         r = requests.post(
-            "https://api.resend.com/emails",
+            "https://api.brevo.com/v3/smtp/email",
             headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "api-key": BREVO_API_KEY,
                 "Content-Type": "application/json",
             },
             json={
-                "from": EMAIL_FROM,
-                "to": [to_email],
+                "sender": {"name": "Upply Interview", "email": EMAIL_FROM},
+                "to": [{"email": to_email, "name": candidate_name}],
                 "subject": f"Your AI Interview — {job_title} at {company}",
-                "html": html,
+                "htmlContent": html,
             },
             timeout=15,
         )
@@ -341,7 +341,7 @@ def send_email(to_email, candidate_name, job_title, company, link):
             print(f"✅ Email → {to_email} (name: {candidate_name})")
             return True
         else:
-            print(f"❌ Resend failed {to_email}: {r.status_code} {r.text}")
+            print(f"❌ Brevo failed {to_email}: {r.status_code} {r.text}")
             return False
     except Exception as e:
         print(f"❌ Email failed {to_email}: {e}")
