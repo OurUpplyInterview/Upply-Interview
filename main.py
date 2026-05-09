@@ -344,8 +344,8 @@ def send_email(to_email, candidate_name, job_title, company, link):
 </div></body></html>"""
  
         msg.attach(MIMEText(html, "html", "utf-8"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
-            s.starttls(); s.login(SMTP_USER, SMTP_PASS)
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as s:
+            s.login(SMTP_USER, SMTP_PASS)
             s.sendmail(EMAIL_FROM, to_email, msg.as_string())
         print(f"✅ Email → {to_email} (name: {candidate_name})")
         return True
