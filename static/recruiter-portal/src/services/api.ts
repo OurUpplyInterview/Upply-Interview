@@ -211,7 +211,7 @@ export const applicationsService = {
 
 // ── Interview service ─────────────────────────────────────────────────────────
 export const interviewService = {
-  async sendBulk(payload: {
+ async sendBulk(payload: {
     job_id: string | number;
     job_title: string;
     company: string;
@@ -219,9 +219,13 @@ export const interviewService = {
     num_questions: number;
     applicants: SendTarget[];
   }): Promise<{ ok: boolean; results: Array<{ email_sent: boolean }>; error?: string }> {
+    const token = storage.getToken();
     const res = await fetch('/recruiter/create-bulk', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
     });
     return res.json();
