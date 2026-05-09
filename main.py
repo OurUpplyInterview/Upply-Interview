@@ -169,7 +169,7 @@ def compute_composite(model_answer, user_answer):
     e1 = bi_encoder.encode([model_answer])
     e2 = bi_encoder.encode([user_answer])
     cos = float(max(0., min(1., cosine_similarity(e1, e2)[0][0])))
-    ce  = float(cross_encoder.predict([[model_answer, user_answer]]))
+    ce  = float(cross_encoder.predict([[model_answer, user_answer]])[0])
     sig = float(1. / (1. + np.exp(-ce)))
     comp = round(0.35*cos + 0.65*sig, 4)
     if comp >= 0.75: hint = "very high — answer closely matches expected"
