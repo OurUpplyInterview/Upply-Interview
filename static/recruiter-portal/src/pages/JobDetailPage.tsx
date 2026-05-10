@@ -414,15 +414,13 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({
                           {/* Bottom row: match + buttons */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                             <div>
-                              {a.matchScore != null ? (
+                              {Number(a.matchPercentage || a.matchScore || 0) > 0 ? (
                                 <span style={{
                                   background: '#E4F7F0', color: '#0f6e56',
                                   padding: '3px 10px', borderRadius: 20,
                                   fontWeight: 600, fontSize: 11,
-                                }}>{a.matchScore}% match</span>
-                              ) : (
-                                <span style={{ fontSize: 11, color: '#C4C3D8' }}>No score</span>
-                              )}
+                                }}>{Number(a.matchPercentage || a.matchScore || 0)}% match</span>
+                              ) : null}
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               {col.key === 'completed' && (
