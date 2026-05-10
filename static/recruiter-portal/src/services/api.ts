@@ -39,6 +39,7 @@ function normalizeApplicant(raw: Record<string, unknown>): Applicant {
   const fullName  = [firstName, lastName].filter(Boolean).join(' ');
 
   const resolvedName =
+    String(raw.applicantFullName || '').trim() ||
     String(raw.applicantName  || '').trim() ||
     String(raw.candidateName  || '').trim() ||
     String(raw.fullName       || '').trim() ||
@@ -62,19 +63,21 @@ function normalizeApplicant(raw: Record<string, unknown>): Applicant {
   console.log(`🔍 Raw applicant keys: ${Object.keys(raw).join(', ')}`);
   console.log(`👤 Resolved → name: "${resolvedName}" | email: "${resolvedEmail}"`);
 
+  const matchPct = raw.matchingRatio != null
+    ? Math.round(Number(raw.matchingRatio) * 100)
+    : Number(raw.matchPercentage || raw.matchScore || raw.score || raw.match || 0);
+
   return {
     id:              (raw.id || raw.applicationId) as string | number,
     applicationId:   (raw.applicationId || raw.id) as string | number,
-    applicantName:   resolvedName.split(' ')[0],
-    candidateName:   resolvedName.split(' ')[0],
-    name:            resolvedName.split(' ')[0],
+    applicantName:   resolvedName,
+    candidateName:   resolvedName,
+    name:            resolvedName,
     applicantEmail:  resolvedEmail,
     candidateEmail:  resolvedEmail,
     email:           resolvedEmail,
     appliedAt:       String(raw.appliedAt || raw.createdAt || raw.applicationDate || ''),
-    matchPercentage: raw.matchingRatio != null
-      ? Math.round(Number(raw.matchingRatio) * 100)
-      : Number(raw.matchPercentage || raw.matchScore || raw.score || raw.match || 0),
+    matchPercentage: matchPct,
     status:          String(raw.status || raw.interviewStatus || 'PENDING') as Applicant['status'],
   };
 }
@@ -135,14 +138,12 @@ export const jobsService = {
 
   async getJobs(): Promise<Job[]> {
     try {
-      // Fetch only the recruiter's own organisation jobs
       const orgId = await jobsService.getMyOrgId();
       if (orgId) {
         const data = await upplyFetch<Job[] | PageResponse<Job>>(`/organizations/${orgId}/jobs`);
         if (Array.isArray((data as PageResponse<Job>).content)) return (data as PageResponse<Job>).content;
         if (Array.isArray(data)) return data as Job[];
       }
-      // Fallback: all jobs (if no org linked to account)
       const data = await upplyFetch<Job[] | PageResponse<Job>>('/jobs');
       if (Array.isArray((data as PageResponse<Job>).content)) return (data as PageResponse<Job>).content;
       if (Array.isArray(data)) return data as Job[];
@@ -225,7 +226,7 @@ export const interviewService = {
     return res.json();
   },
 
- async sendBulk(payload: {
+  async sendBulk(payload: {
     job_id: string | number;
     job_title: string;
     company: string;
@@ -235,13 +236,13 @@ export const interviewService = {
   }): Promise<{ ok: boolean; results: Array<{ email_sent: boolean }>; error?: string }> {
     const token = storage.getToken();
     const res = await fetch('/recruiter/create-bulk', {
-    method: 'POST',
-     headers: {
-       'Content-Type': 'application/json',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  },
-  body: JSON.stringify(payload),
-});
+      },
+      body: JSON.stringify(payload),
+    });
     return res.json();
   },
 
