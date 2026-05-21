@@ -386,6 +386,8 @@ def setup(token: str = Form(...)):
         return {"ok": False, "error": "Interview not found or expired."}
     if sess["status"] == "COMPLETED":
         return {"ok": False, "error": "This interview has already been completed."}
+    if sess["status"] == "IN_PROGRESS":
+        return {"ok": False, "error": "This interview link has already been used. Please contact your recruiter for a new link."}
  
     if sess["questions_json"]:
         questions = json.loads(sess["questions_json"])
