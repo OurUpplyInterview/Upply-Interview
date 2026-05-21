@@ -94,6 +94,7 @@ export interface SendTarget {
   id: string | number;
   email: string;
   name: string;
+  application_id?: string;
 }
 export interface Toast {
   message: string;

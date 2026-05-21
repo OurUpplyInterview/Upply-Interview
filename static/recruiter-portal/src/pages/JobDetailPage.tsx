@@ -67,9 +67,10 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({
 
   const confirmSendAll = () => {
     const targets = applicants.map(a => ({
-      id:    a.id || a.applicationId || '',
-      email: a.applicantEmail || a.candidateEmail || a.email || '',
-      name:  a.applicantName  || a.candidateName  || a.name  || 'Candidate',
+      id:             a.id || a.applicationId || '',
+      email:          a.applicantEmail || a.candidateEmail || a.email || '',
+      name:           a.applicantName  || a.candidateName  || a.name  || 'Candidate',
+      application_id: String(a.id || a.applicationId || ''),
     }));
     setConfirm({
       open: true,
@@ -83,9 +84,10 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({
     const targets = applicants
       .filter(a => selected.has(String(a.id || a.applicationId)))
       .map(a => ({
-        id:    a.id || a.applicationId || '',
-        email: a.applicantEmail || a.candidateEmail || a.email || '',
-        name:  a.applicantName  || a.candidateName  || a.name  || 'Candidate',
+        id:             a.id || a.applicationId || '',
+        email:          a.applicantEmail || a.candidateEmail || a.email || '',
+        name:           a.applicantName  || a.candidateName  || a.name  || 'Candidate',
+        application_id: String(a.id || a.applicationId || ''),
       }));
     setConfirm({
       open: true,
@@ -100,7 +102,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({
       open: true,
       title: 'Send interview link?',
       body:  `Sending to ${name} (${email}).`,
-      onConfirm: () => doSend([{ id: appId, email, name }]),
+      onConfirm: () => doSend([{ id: appId, email, name, application_id: appId }]),
     });
   };
 
@@ -414,13 +416,15 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({
                           {/* Bottom row: match + buttons */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                             <div>
-                              {Number(a.matchPercentage || a.matchScore || 0) > 0 ? (
+                              {a.matchScore != null ? (
                                 <span style={{
                                   background: '#E4F7F0', color: '#0f6e56',
                                   padding: '3px 10px', borderRadius: 20,
                                   fontWeight: 600, fontSize: 11,
-                                }}>{Number(a.matchPercentage || a.matchScore || 0)}% match</span>
-                              ) : null}
+                                }}>{a.matchScore}% match</span>
+                              ) : (
+                                <span style={{ fontSize: 11, color: '#C4C3D8' }}>No score</span>
+                              )}
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               {col.key === 'completed' && (
