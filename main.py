@@ -581,10 +581,11 @@ async def proxy_user_me(request: Request):
 
 @app.get("/proxy/jobs")
 async def proxy_jobs(request: Request):
-    headers = _proxy_headers(request)
+    headers    = _proxy_headers(request)
     jwt_header = request.headers.get("Authorization", "")
+    claims     = _decode_jwt_payload(jwt_header)
 
-    claims = _decode_jwt_payload(jwt_header)
+    # Try to get org_id from JWT first
     org_id = (
         claims.get("organizationId")
         or claims.get("organisation_id")
@@ -592,10 +593,26 @@ async def proxy_jobs(request: Request):
         or claims.get("org_id")
         or (claims.get("organization") or {}).get("id")
     )
-    recruiter_email = claims.get("sub") or claims.get("email") or ""
-    print(f"🔑 JWT → org_id={org_id}, email={recruiter_email}")
 
     async with httpx.AsyncClient(timeout=60) as hc:
+
+        # org_id not in JWT → fetch it from Upply API
+        if not org_id:
+            print("🔍 org_id not in JWT — fetching from /user/me/organization")
+            try:
+                org_resp = await hc.get(
+                    f"{UPPLY_API_BASE}/user/me/organization",
+                    headers=headers,
+                )
+                if org_resp.status_code == 200:
+                    org_id = org_resp.json().get("id")
+                    print(f"✅ Got org_id from API: {org_id}")
+                else:
+                    print(f"⚠️ /user/me/organization returned {org_resp.status_code}")
+            except Exception as e:
+                print(f"⚠️ Failed to fetch org: {e}")
+
+        # Fetch only this org's jobs
         if org_id:
             print(f"🏢 Fetching jobs for organization: {org_id}")
             all_jobs = []
@@ -614,39 +631,9 @@ async def proxy_jobs(request: Request):
             print(f"✅ Returning {len(all_jobs)} jobs for org {org_id}")
             return JSONResponse(status_code=200, content=all_jobs)
 
-        print(f"⚠️  No org ID in JWT — fetching all jobs, filtering by email: {recruiter_email}")
-        all_jobs = []
-        page = 0
-        while True:
-            r = await hc.get(
-                f"{UPPLY_API_BASE}/jobs?page={page}&size=20",
-                headers=headers,
-            )
-            data = _safe_json(r)
-            content = data.get("content", [])
-            all_jobs.extend(content)
-            if data.get("last", True):
-                break
-            page += 1
-
-        if all_jobs:
-            print(f"🔍 Sample job fields: {list(all_jobs[0].keys())}")
-            print(f"🔍 Sample job: {all_jobs[0]}")
-
-        if recruiter_email:
-            filtered = [
-                j for j in all_jobs
-                if j.get("recruiterEmail") == recruiter_email
-                or j.get("postedBy") == recruiter_email
-                or j.get("createdBy") == recruiter_email
-                or (j.get("poster") or {}).get("email") == recruiter_email
-            ]
-            if filtered:
-                print(f"✅ Filtered to {len(filtered)} jobs for {recruiter_email}")
-                return JSONResponse(status_code=200, content=filtered)
-            print(f"⚠️  Email filter matched 0 — returning all {len(all_jobs)} jobs")
-
-        return JSONResponse(status_code=200, content=all_jobs)
+        # No org found at all
+        print("⚠️ No org ID found — returning empty list")
+        return JSONResponse(status_code=200, content=[])
  
 @app.get("/proxy/jobs/{job_id}/applications")
 async def proxy_applications(job_id: str, request: Request):
