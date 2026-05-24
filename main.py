@@ -250,19 +250,28 @@ Use the candidate's CV to:
 - Do NOT ask about things that are completely absent from both the JD and the CV
 """
 
-    ne = max(1, n // 3); nm = max(1, n // 3); nh = n - ne - nm
+    n_tech = max(1, round(n * 0.7))
+    n_soft = n - n_tech
+    ne = max(1, n_tech // 3); nm = max(1, n_tech // 3); nh = n_tech - ne - nm
 
-    raw = groq_call(f"""You are a senior technical interviewer.
+    raw = groq_call(f"""You are a senior interviewer conducting a professional job interview.
 
 Job requirements extracted from JD:
 {extract}
 {candidate_block}
-Generate exactly {n} interview questions. RULES:
-- Every question must reference a specific skill/tool/responsibility from the JD
-- If a CV was provided, tailor at least half the questions to the candidate's actual background
-- FORBIDDEN: "Tell me about yourself", strengths/weaknesses, generic "5 years" questions
-- Difficulty: first {ne} easy, next {nm} medium, last {nh} hard
-- Include a thorough model answer for each question (3-6 sentences)
+Generate exactly {n} interview questions with this mix:
+- First {n_tech} questions: TECHNICAL (skills, tools, coding, systems)
+  - Difficulty: first {ne} easy, next {nm} medium, last {nh} hard
+  - Must reference specific skills/tools from the JD
+- Last {n_soft} questions: BEHAVIORAL or SITUATIONAL
+  - Behavioral: "Tell me about a time when..." based on real past experience
+  - Situational: "How would you handle..." relevant to the role
+  - If CV provided, reference their actual projects/experience
+
+RULES FOR ALL QUESTIONS:
+- FORBIDDEN: "Tell me about yourself", generic strengths/weaknesses
+- If CV provided, tailor at least half the technical questions to candidate's background
+- Each question must have a thorough model answer (3-6 sentences)
 
 Return ONLY a valid JSON array:
 [{{"question":"...","model_answer":"..."}}]""", temperature=0.4, max_tokens=2048)
