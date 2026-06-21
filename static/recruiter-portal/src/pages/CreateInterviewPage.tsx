@@ -83,28 +83,7 @@ const styles = `
 }
 `;
 
-const stepIcons = [
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="7" width="20" height="14" rx="3" stroke="#34A853" strokeWidth="2"/>
-    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
-    <line x1="2" y1="13" x2="22" y2="13" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
-  </svg>,
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="9" cy="7" r="3" stroke="#34A853" strokeWidth="2"/>
-    <path d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
-    <circle cx="17" cy="7" r="2.5" stroke="#34A853" strokeWidth="1.8"/>
-    <path d="M21 20c0-2.761-1.791-5-4-5" stroke="#34A853" strokeWidth="1.8" strokeLinecap="round"/>
-  </svg>,
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4" y="6" width="16" height="13" rx="3" stroke="#34A853" strokeWidth="2"/>
-    <circle cx="9" cy="12" r="1.5" fill="#34A853"/>
-    <circle cx="15" cy="12" r="1.5" fill="#34A853"/>
-    <path d="M9 16h6" stroke="#34A853" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M12 6V3" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
-    <circle cx="12" cy="2.5" r="0.5" fill="#34A853" stroke="#34A853"/>
-    <path d="M4 10H2M22 10h-2" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
-  </svg>,
-];
+const stepNumbers = ['1', '2', '3'];
 
 const steps = [
   { label: 'Select a Job',       desc: 'Choose from your active job postings' },
@@ -144,7 +123,15 @@ export const CreateInterviewPage: React.FC<CreateInterviewPageProps> = ({ onStar
           <div style={{ marginBottom: 32, zIndex: 1 }}>
             {steps.map((step, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                <div style={{ flexShrink: 0, marginTop: 2 }}>{stepIcons[i]}</div>
+                <div style={{
+                  flexShrink: 0, marginTop: 2,
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: '#34A853', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: 15, fontFamily: 'Poppins, sans-serif',
+                }}>
+                  {stepNumbers[i]}
+                </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: '#1E1D4C' }}>{step.label}</div>
                   <div style={{ fontSize: 13, color: '#6B7280' }}>{step.desc}</div>
@@ -164,17 +151,6 @@ export const CreateInterviewPage: React.FC<CreateInterviewPageProps> = ({ onStar
               }}
             >
               Create Interview →
-            </button>
-
-            <button
-              onClick={onBrowse || onStart}
-              style={{
-                padding: '16px 28px', borderRadius: 50,
-                border: '1.5px solid #1E1D4C', background: 'transparent',
-                color: '#1E1D4C', fontWeight: 500, cursor: 'pointer', fontSize: 15,
-              }}
-            >
-              Browse jobs
             </button>
           </div>
         </div>
