@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         rel="noreferrer"
         style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
       >
-        <UpplyLogo height={44} />
+        <UpplyLogo height={50} />
       </a>
 
       {/* RIGHT SIDE */}

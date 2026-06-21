@@ -80,7 +80,6 @@ export default function App() {
           {iv.section === "summary" && (
             <SummarySection
               results={iv.results}
-              onRetry={iv.retry}
             />
           )}
         </main>

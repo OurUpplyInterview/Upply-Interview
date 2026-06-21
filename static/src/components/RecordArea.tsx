@@ -1,6 +1,7 @@
 interface Props {
   isRecording: boolean;
   isTranscribing: boolean;
+  isSpeaking: boolean;
   timerSecs: number;
   transcript: string;
   recordError: string;
@@ -14,12 +15,14 @@ function fmtTime(secs: number) {
 }
 
 export default function RecordArea({
-  isRecording, isTranscribing, timerSecs, transcript, recordError, onToggle,
+  isRecording, isTranscribing, isSpeaking, timerSecs, transcript, recordError, onToggle,
 }: Props) {
   const status = isTranscribing
     ? "Transcribing your answer…"
     : isRecording
     ? "Recording — click to stop"
+    : isSpeaking
+    ? "Please wait for the question to finish…"
     : recordError || (transcript ? "Answer captured ✓" : "Click to start recording");
 
   return (
@@ -27,7 +30,7 @@ export default function RecordArea({
       <button
         className={`record-btn${isRecording ? " rec-active" : ""}${isTranscribing ? " rec-processing" : ""}`}
         onClick={onToggle}
-        disabled={isTranscribing}
+        disabled={isTranscribing || isSpeaking}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
         {isRecording ? (
@@ -61,7 +64,7 @@ export default function RecordArea({
               <circle cx="6" cy="6" r="6" fill="rgba(52,168,83,0.15)" />
               <path d="M3 6l2 2 4-4" stroke="#34A853" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Transcribed by Whisper
+            Your answer
           </div>
           <div className="transcript-text">{transcript}</div>
         </div>

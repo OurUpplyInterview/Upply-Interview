@@ -11,7 +11,6 @@ export function useInterview() {
   const [questions, setQuestions]   = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [results, setResults]       = useState<QuestionResult[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast]           = useState<ToastState>({ message: "", type: "", visible: false });
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
@@ -58,35 +57,42 @@ export function useInterview() {
     const q = questions[currentIdx];
     if (!q || !transcript.trim()) return;
 
-    setIsSubmitting(true);
-    try {
-      const res = await apiEvaluate({
-        question:     q.question,
-        model_answer: q.model_answer,
-        user_answer:  transcript,
-        token,
-        q_index:      currentIdx,
-      });
+    // Immediately mark as submitted with a placeholder result
+    const placeholder: QuestionResult = {
+      question: q.question,
+      score:    -1,   // -1 = still evaluating
+      feedback: "Evaluating…",
+      tip:      "",
+    };
+    setResults(prev => {
+      const updated = [...prev];
+      updated[currentIdx] = placeholder;
+      return updated;
+    });
+    showToast("Answer submitted — great job!", "success");
 
+    // Evaluate in background — no await on the component side
+    apiEvaluate({
+      question:     q.question,
+      model_answer: q.model_answer,
+      user_answer:  transcript,
+      token,
+      q_index:      currentIdx,
+    }).then(res => {
       const result: QuestionResult = {
         question: q.question,
         score:    parseFloat(res.score) || 0,
         feedback: res.feedback,
         tip:      res.tip,
       };
-
       setResults(prev => {
         const updated = [...prev];
         updated[currentIdx] = result;
         return updated;
       });
-
-      showToast("Answer submitted — great job!", "success");
-    } catch {
-      showToast("Submission failed. Please try again.", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    }).catch(() => {
+      // Keep placeholder, show error in summary
+    });
   }, [questions, currentIdx, token, showToast]);
 
   const nextQuestion = useCallback(() => {
@@ -106,7 +112,7 @@ export function useInterview() {
 
   return {
     section, errorMsg, jobTitle, company,
-    questions, currentIdx, results, isSubmitting, toast,
+    questions, currentIdx, results, isSubmitting: false, toast,
     init, beginInterview, submitAnswer, nextQuestion, finishInterview, retry,
   };
 }

@@ -89,6 +89,7 @@ export default function InterviewSection(props: Props) {
           <RecordArea
             isRecording={isRecording}
             isTranscribing={isTranscribing}
+            isSpeaking={ttsState !== "idle"}
             timerSecs={timerSecs}
             transcript={transcript}
             recordError={recordError}
@@ -101,7 +102,7 @@ export default function InterviewSection(props: Props) {
                 <circle cx="9" cy="9" r="9" fill="rgba(52,168,83,0.15)" />
                 <path d="M5 9l3 3 5-5" stroke="#34A853" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Answer submitted — AI is evaluating…
+              Answer submitted — evaluating…
             </div>
           )}
 
