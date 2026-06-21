@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { Question, QuestionResult, AppSection, ToastState } from "../types/interview";
 import { apiSetup, apiEvaluate, apiComplete } from "../services/api";
 
@@ -13,12 +13,14 @@ export function useInterview() {
   const [results, setResults]       = useState<QuestionResult[]>([]);
   const [toast, setToast]           = useState<ToastState>({ message: "", type: "", visible: false });
 
+  // Store transcripts without triggering re-renders
+  const transcriptsRef = useRef<{ question: Question; transcript: string; index: number }[]>([]);
+
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type, visible: true });
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3500);
   }, []);
 
-  // Load session on mount
   const init = useCallback(async () => {
     const params = new URLSearchParams(window.location.search);
     const tok = params.get("token") || "";
@@ -50,17 +52,21 @@ export function useInterview() {
   const beginInterview = useCallback(() => {
     setCurrentIdx(0);
     setResults([]);
+    transcriptsRef.current = [];
     setSection("interview");
   }, []);
 
-  const submitAnswer = useCallback(async (transcript: string) => {
+  const submitAnswer = useCallback((transcript: string) => {
     const q = questions[currentIdx];
     if (!q || !transcript.trim()) return;
 
-    // Immediately mark as submitted with a placeholder result
+    // Save transcript for later evaluation
+    transcriptsRef.current[currentIdx] = { question: q, transcript, index: currentIdx };
+
+    // Mark as submitted with placeholder
     const placeholder: QuestionResult = {
       question: q.question,
-      score:    -1,   // -1 = still evaluating
+      score:    -1,
       feedback: "Evaluating…",
       tip:      "",
     };
@@ -69,50 +75,56 @@ export function useInterview() {
       updated[currentIdx] = placeholder;
       return updated;
     });
-    showToast("Answer submitted — great job!", "success");
 
-    // Evaluate in background — no await on the component side
-    apiEvaluate({
-      question:     q.question,
-      model_answer: q.model_answer,
-      user_answer:  transcript,
-      token,
-      q_index:      currentIdx,
-    }).then(res => {
-      const result: QuestionResult = {
-        question: q.question,
-        score:    parseFloat(res.score) || 0,
-        feedback: res.feedback,
-        tip:      res.tip,
-      };
-      setResults(prev => {
-        const updated = [...prev];
-        updated[currentIdx] = result;
-        return updated;
-      });
-    }).catch(() => {
-      // Keep placeholder, show error in summary
-    });
-  }, [questions, currentIdx, token, showToast]);
+    showToast("Answer submitted — great job!", "success");
+  }, [questions, currentIdx, showToast]);
 
   const nextQuestion = useCallback(() => {
     setCurrentIdx(i => i + 1);
-  }, []);
+  }, [token]);
 
   const finishInterview = useCallback(async () => {
-    try { await apiComplete(token); } catch { /* best effort */ }
+    // Go to summary immediately
     setSection("summary");
-  }, [token]);
+
+    try { await apiComplete(token); } catch { /* best effort */ }
+
+    // Now evaluate all answers in parallel
+    const entries = transcriptsRef.current.filter(Boolean);
+    entries.forEach(({ question: q, transcript, index }) => {
+      apiEvaluate({
+        question:     q.question,
+        model_answer: q.model_answer,
+        user_answer:  transcript,
+        token:        token,
+        q_index:      index,
+      }).then(res => {
+        const result: QuestionResult = {
+          question: q.question,
+          score:    parseFloat(res.score) || 0,
+          feedback: res.feedback,
+          tip:      res.tip,
+        };
+        setResults(prev => {
+          const updated = [...prev];
+          updated[index] = result;
+          return updated;
+        });
+      }).catch(() => {});
+    });
+  }, []);
 
   const retry = useCallback(() => {
     setCurrentIdx(0);
     setResults([]);
+    transcriptsRef.current = [];
     setSection("welcome");
-  }, []);
+  }, [token]);
 
   return {
     section, errorMsg, jobTitle, company,
     questions, currentIdx, results, isSubmitting: false, toast,
+    token,
     init, beginInterview, submitAnswer, nextQuestion, finishInterview, retry,
   };
 }
