@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import type { Question, QuestionResult, AppSection, ToastState } from "../types/interview";
-import { apiSetup, apiEvaluate, apiComplete } from "../services/api";
+import { apiSetup, apiEvaluateBatch, apiComplete } from "../services/api";
 
 export function useInterview() {
   const [section, setSection]       = useState<AppSection>("loading");
@@ -89,29 +89,39 @@ export function useInterview() {
 
     try { await apiComplete(token); } catch { /* best effort */ }
 
-    // Now evaluate all answers in parallel
+    // Evaluate ALL answers in ONE request — backend batches the
+    // bi-encoder/cross-encoder pass so it's fast even for many questions.
     const entries = transcriptsRef.current.filter(Boolean);
-    entries.forEach(({ question: q, transcript, index }) => {
-      apiEvaluate({
-        question:     q.question,
-        model_answer: q.model_answer,
-        user_answer:  transcript,
-        token:        token,
-        q_index:      index,
-      }).then(res => {
-        const result: QuestionResult = {
-          question: q.question,
-          score:    parseFloat(res.score) || 0,
-          feedback: res.feedback,
-          tip:      res.tip,
-        };
-        setResults(prev => {
-          const updated = [...prev];
-          updated[index] = result;
-          return updated;
+    if (!entries.length) return;
+
+    try {
+      const res = await apiEvaluateBatch({
+        token,
+        items: entries.map(({ question: q, transcript, index }) => ({
+          question:     q.question,
+          model_answer: q.model_answer,
+          user_answer:  transcript,
+          q_index:      index,
+        })),
+      });
+
+      setResults(prev => {
+        const updated = [...prev];
+        entries.forEach(({ index }, i) => {
+          const r = res.results[i];
+          if (!r) return;
+          updated[index] = {
+            question: entries[i].question.question,
+            score:    parseFloat(r.score) || 0,
+            feedback: r.feedback,
+            tip:      r.tip,
+          };
         });
-      }).catch(() => {});
-    });
+        return updated;
+      });
+    } catch {
+      // best effort — leave placeholders if the batch call fails
+    }
   }, []);
 
   const retry = useCallback(() => {

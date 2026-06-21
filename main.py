@@ -13,6 +13,7 @@ Routes:
   POST /transcribe    → Groq Whisper STT
   POST /speak         → edge-tts TTS
   POST /evaluate      → scoring (cosine + cross-encoder → LLM → 1 result)
+  POST /evaluate-batch→ scoring ALL answers at once (batched encoder pass, faster)
   POST /complete      → mark session done, notify Upply backend
  
   POST /recruiter/create-bulk       → generate + email N candidates (questions personalised per CV)
@@ -22,7 +23,7 @@ Routes:
   GET  /proxy/applications/{applicationId}/resume/download → stream candidate CV PDF from Upply
 """
  
-import os, json, re, io, secrets, uuid, httpx
+import os, json, re, io, secrets, uuid, httpx, asyncio
 import requests
 import psycopg2
 import psycopg2.extras
@@ -183,6 +184,33 @@ def compute_composite(model_answer, user_answer):
     elif comp >= 0.35: hint = "moderate — partially addresses question"
     else: hint = "low — largely off-topic or missing core concepts"
     return {"composite": comp, "hint": hint}
+
+def compute_composite_batch(pairs):
+    """Same scoring as compute_composite, but scores all pairs in ONE
+    batched bi-encoder pass and ONE batched cross-encoder pass instead of
+    N separate calls. Avoids N requests fighting each other for CPU."""
+    if not pairs:
+        return []
+    model_answers = [p[0] for p in pairs]
+    user_answers  = [p[1] for p in pairs]
+
+    e1 = bi_encoder.encode(model_answers)
+    e2 = bi_encoder.encode(user_answers)
+    cos_scores = cosine_similarity(e1, e2).diagonal()
+
+    ce_scores = cross_encoder.predict(list(pairs))
+
+    hints = []
+    for cos, ce in zip(cos_scores, ce_scores):
+        cos = float(max(0., min(1., cos)))
+        sig = float(1. / (1. + np.exp(-float(ce))))
+        comp = round(0.35*cos + 0.65*sig, 4)
+        if comp >= 0.75: hint = "very high — answer closely matches expected"
+        elif comp >= 0.55: hint = "moderate-to-high — most key points covered"
+        elif comp >= 0.35: hint = "moderate — partially addresses question"
+        else: hint = "low — largely off-topic or missing core concepts"
+        hints.append({"composite": comp, "hint": hint})
+    return hints
  
 def extract_pdf_text(pdf_bytes: bytes) -> str:
     """Extract plain text from a PDF given its raw bytes."""
@@ -466,7 +494,90 @@ TIP: [one actionable improvement]""", temperature=0.2, max_tokens=256)
                (token, q_index, question, int(score), feedback, tip, cleaned))
  
     return {"score": score, "feedback": feedback, "tip": tip, "cleaned": cleaned}
- 
+
+@app.post("/evaluate-batch")
+async def evaluate_batch(request: Request):
+    """Scores ALL questions from one interview in a single request.
+    Bi-encoder + cross-encoder run ONCE over the whole batch (fast),
+    then Groq feedback is generated per-answer in parallel threads."""
+    body = await request.json()
+    items = body.get("items", [])
+    token = body.get("token", "")
+    if not items:
+        return {"results": []}
+
+    cleaned_list = [clean_transcript(it.get("user_answer", "")) for it in items]
+
+    # Build pairs only for answers that actually have content
+    pairs, pair_idx = [], []
+    for i, (it, cleaned) in enumerate(zip(items, cleaned_list)):
+        if cleaned.strip():
+            pairs.append((it["model_answer"], cleaned))
+            pair_idx.append(i)
+
+    hints_by_idx = {}
+    if pairs:
+        hints = compute_composite_batch(pairs)
+        for idx, h in zip(pair_idx, hints):
+            hints_by_idx[idx] = h["hint"]
+
+    def score_one(i, it, cleaned):
+        if not cleaned.strip():
+            return {"score": "1", "feedback": "No answer detected.",
+                     "tip": "Speak clearly into your mic.", "cleaned": cleaned}
+
+        hint = hints_by_idx.get(i, "low — largely off-topic or missing core concepts")
+        raw = groq_call(f"""Strict but fair technical interviewer evaluating a verbal answer.
+
+Question: {it['question']}
+Expected: {it['model_answer']}
+Candidate (from Whisper): {cleaned}
+Semantic similarity: {hint}
+
+Use similarity as primary calibration. Score guide:
+9-10 Complete accurate well-explained | 7-8 Mostly correct minor gaps
+5-6 Partial, missing key points | 3-4 Mostly incorrect shallow | 1-2 Wrong/off-topic
+
+Respond EXACTLY in 3 lines:
+SCORE: [1-10]
+FEEDBACK: [one sentence]
+TIP: [one actionable improvement]""", temperature=0.2, max_tokens=256)
+
+        parsed = {}
+        for line in raw.splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":"); parsed[k.strip().upper()] = v.strip()
+
+        score    = parsed.get("SCORE", "5")
+        feedback = parsed.get("FEEDBACK", "Answer received.")
+        tip      = parsed.get("TIP", "Be more specific and structured.")
+        try: score = str(max(1, min(10, int(score))))
+        except: score = "5"
+        return {"score": score, "feedback": feedback, "tip": tip, "cleaned": cleaned}
+
+    # Groq calls are I/O-bound (network), so real threads DO help here —
+    # unlike the CPU-bound encoder calls above, which we already batched.
+    results = await asyncio.gather(*[
+        asyncio.to_thread(score_one, i, it, cleaned)
+        for i, (it, cleaned) in enumerate(zip(items, cleaned_list))
+    ])
+
+    if token:
+        conn = get_db()
+        try:
+            with conn.cursor() as cur:
+                for it, res in zip(items, results):
+                    cur.execute("""INSERT INTO interview_results
+                              (session_token,question_index,question,score,feedback,tip,transcript)
+                              VALUES(%s,%s,%s,%s,%s,%s,%s)""",
+                           (token, it.get("q_index", 0), it["question"],
+                            int(res["score"]), res["feedback"], res["tip"], res["cleaned"]))
+            conn.commit()
+        finally:
+            conn.close()
+
+    return {"results": results}
+
 @app.post("/complete")
 def complete(token: str = Form(...)):
     sess = db_get("SELECT * FROM interview_sessions WHERE token=%s", (token,))

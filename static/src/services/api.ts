@@ -55,3 +55,49 @@ export async function apiEvaluate(payload: EvaluatePayload): Promise<EvaluateRes
   const res = await fetch("/evaluate", { method: "POST", body: fd });
   return res.json();
 }
+
+
+
+
+// ── Add this to your existing static/src/services/api.ts ──────────────────
+//
+// This replaces the old single-question apiEvaluate() call pattern.
+// It sends ALL questions in one request to the new /evaluate-batch route.
+// Keep your existing apiSetup / apiComplete as they are — just add this.
+
+export interface EvaluateBatchItem {
+  question: string;
+  model_answer: string;
+  user_answer: string;
+  q_index: number;
+}
+
+export interface EvaluateBatchResult {
+  score: string;
+  feedback: string;
+  tip: string;
+  cleaned: string;
+}
+
+export interface EvaluateBatchResponse {
+  results: EvaluateBatchResult[];
+}
+
+export async function apiEvaluateBatch(payload: {
+  token: string;
+  items: EvaluateBatchItem[];
+}): Promise<EvaluateBatchResponse> {
+  const res = await fetch("/evaluate-batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`evaluate-batch failed: ${res.status}`);
+  return res.json();
+}
+
+// If nothing else in your codebase still calls the old apiEvaluate(),
+// you can remove that function and its import elsewhere. If something
+// else still uses it (unlikely), leave it — /evaluate still exists
+// on the backend unchanged.
+
