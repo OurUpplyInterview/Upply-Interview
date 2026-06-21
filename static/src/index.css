@@ -105,16 +105,18 @@ body {
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .layout {
   display: grid;
   grid-template-columns: 380px 1fr;
   flex: 1;
-  min-height: calc(100vh - 60px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── NavBar ────────────────────────────────────────────────────────────── */
@@ -183,10 +185,7 @@ body {
 /* ── Hero Panel ─────────────────────────────────────────────────────────── */
 .hero {
   background: linear-gradient(145deg, #1C1B5E 0%, #252466 40%, #2A2878 70%, #1E1C55 100%);
-  position: sticky;
-  top: 60px;
-  align-self: start;
-  height: calc(100vh - 60px);
+  position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -297,6 +296,7 @@ body {
 
 /* ── Main Panel ─────────────────────────────────────────────────────────── */
 .main-panel {
+  min-height: 0;
   overflow-y: auto;
   padding: 32px 36px;
   background: var(--bg);
