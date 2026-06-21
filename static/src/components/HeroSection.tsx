@@ -12,15 +12,15 @@ export default function HeroSection() {
       </div>
 
       <div className="hero-inner">
+        <p className="hero-sub">
+          Speak naturally. Get scored instantly. Leave with insights.
+        </p>
+
         <h1 className="hero-title">
           Hire not just<br />
           for skills, but<br />
           <span className="hero-title-accent">for mindset</span>
         </h1>
-
-        <p className="hero-sub">
-          Speak naturally. Get scored instantly. Leave with insights.
-        </p>
       </div>
 
       <div className="hero-orb hero-orb-1" aria-hidden="true" />

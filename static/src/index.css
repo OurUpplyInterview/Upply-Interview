@@ -183,7 +183,10 @@ body {
 /* ── Hero Panel ─────────────────────────────────────────────────────────── */
 .hero {
   background: linear-gradient(145deg, #1C1B5E 0%, #252466 40%, #2A2878 70%, #1E1C55 100%);
-  position: relative;
+  position: sticky;
+  top: 60px;
+  align-self: start;
+  height: calc(100vh - 60px);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -260,7 +263,7 @@ body {
   line-height: 1.18;
   letter-spacing: -1.2px;
   color: #FFFFFF;
-  margin-bottom: 20px;
+  margin-top: 20px;
 }
 .hero-title-accent {
   color: var(--green);
@@ -270,7 +273,6 @@ body {
 .hero-sub {
   font-size: 15px;
   color: rgba(255,255,255,.55);
-  margin-bottom: 36px;
   line-height: 1.65;
   max-width: 300px;
 }
